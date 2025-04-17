@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+python-dotenv
+google-generativeai
+firebase-admin
+langchain_community
+langchain
+pypdf
+tiktoken
+python-multipart
