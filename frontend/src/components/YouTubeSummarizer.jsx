@@ -11,7 +11,7 @@ export default function YouTubeSummarizer() {
   };
 
   return (
-    <div>
+    <div style={{ padding: "20px", maxWidth: "1500px", margin: "auto auto" }}>
       <h2>YouTube Notes</h2>
       <input
         type="text"

@@ -27,7 +27,7 @@ export default function ChatBot() {
   };
 
   return (
-    <div>
+    <div style={{ padding: "20px", maxWidth: "1500px", margin: "auto auto" }}>
       <h2>💬 AI Tutor Chat</h2>
       <input
         type="text"
