@@ -5,8 +5,10 @@ from gemini_utils import summarize_text, generate_quiz as gemini_generate_quiz
 from nlp_analysis import analyze_performance
 from langchain_utils import get_document_qa
 from models import SummaryRequest, QuizRequest, YouTubeRequest
+from PyPDF2 import PdfReader
+from pdf2image import convert_from_bytes
+import pytesseract
 import io
-from pypdf import PdfReader
 import uvicorn
 
 app = FastAPI()
@@ -22,36 +24,38 @@ app.add_middleware(
 
 # --- PDF/Text Summarizer ---
 @app.post("/summarize/")
-async def summarize_pdf(file: UploadFile, user_class: str = Form(...), board: str = Form(...)):
+async def summarize_pdf(file: UploadFile):
     try:
         content = await file.read()
         
-        if file.filename.lower().endswith('.pdf'):
-            try:
-                pdf_reader = PdfReader(io.BytesIO(content))
-                text = ""
-                for page in pdf_reader.pages:
-                    extracted = page.extract_text()
-                    text += extracted if extracted else " "
-            except Exception as e:
-                return {"error": f"Error processing PDF: {str(e)}"}
-        else:
-            encodings = ['utf-8', 'latin-1', 'cp1252', 'utf-16']
-            text = None
-            for encoding in encodings:
-                try:
-                    text = content.decode(encoding)
-                    break
-                except UnicodeDecodeError:
-                    continue
-            if not text:
-                text = content.decode('utf-8', errors='replace')
+        if not file.filename.lower().endswith('.pdf'):
+            return {"error": "File is not a valid PDF."}
 
-        if not text.strip():
-            return {"error": "No readable text found in the document"}
+        text = ""
+        try:
+            # First try to extract text using PyPDF2
+            pdf_reader = PdfReader(io.BytesIO(content))
+            for page in pdf_reader.pages:
+                extracted = page.extract_text()
+                if extracted:
+                    text += extracted + "\n"
 
-        summary = summarize_text(text, user_class, board)
-        return {"summary": summary}
+            # If no text was extracted, try OCR
+            if not text.strip():
+                images = convert_from_bytes(content)
+                for image in images:
+                    text += pytesseract.image_to_string(image) + "\n"
+
+            if not text.strip():
+                return {"error": "No readable text found in the document"}
+
+            # Generate summary using the extracted text
+            summary = summarize_text(text.strip())
+            return {"summary": summary}
+
+        except Exception as e:
+            return {"error": f"Error processing PDF: {str(e)}"}
+
     except Exception as e:
         return {"error": f"Unexpected error: {str(e)}"}
 
