@@ -11,9 +11,9 @@ function App() {
     <Router>
       <div className="app-container">
         <nav className="navbar">
-          <h1 className="nav-brand">📚 AI Tutoring System</h1>
+          <h1 className="nav-brand">📚 AI Education Assistant</h1>
           <ul className="nav-links">
-            <li><Link to="/chat">Chat Bot</Link></li>
+            <li><Link to="/chat">Chat</Link></li>
             <li><Link to="/pdf">PDF Summarizer</Link></li>
             <li><Link to="/youtube">YouTube Summarizer</Link></li>
             <li><Link to="/quiz">Quiz Generator</Link></li>

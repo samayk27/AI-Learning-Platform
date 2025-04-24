@@ -27,13 +27,13 @@ export default function ChatBot() {
   };
 
   return (
-    <div style={{ marginTop: "2rem" }}>
+    <div>
       <h2>💬 AI Tutor Chat</h2>
-      <textarea
+      <input
+        type="text"
         placeholder="Paste relevant chapter or notes here"
         value={context}
         onChange={(e) => setContext(e.target.value)}
-        rows={6}
         style={{ width: "100%" }}
       />
       <input
@@ -41,14 +41,14 @@ export default function ChatBot() {
         placeholder="Ask a question..."
         value={question}
         onChange={(e) => setQuestion(e.target.value)}
-        style={{ width: "100%", marginTop: "1rem", padding: "0.5rem" }}
+        style={{ width: "100%" }}
       />
-      <button onClick={handleSubmit} disabled={loading} style={{ marginTop: "1rem" }}>
+      <button onClick={handleSubmit} disabled={loading}>
         {loading ? "Thinking..." : "Ask"}
       </button>
 
       {answer && (
-        <div style={{ marginTop: "1rem", background: "#f5f5f5", padding: "1rem" }}>
+        <div style={{ background: "#f5f5f5" }}>
           <strong>Answer:</strong>
           <p>{answer}</p>
         </div>

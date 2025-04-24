@@ -13,8 +13,13 @@ export default function YouTubeSummarizer() {
   return (
     <div>
       <h2>YouTube Notes</h2>
-      <textarea value={transcript} onChange={e => setTranscript(e.target.value)} />
-      <button onClick={handleSubmit}>Generate Notes</button>
+      <input
+        type="text"
+        value={transcript}
+        onChange={e => setTranscript(e.target.value)}
+        style={{ width: "100%" }}
+      />
+      <button>Generate Notes</button>
       <p>{notes}</p>
     </div>
   );

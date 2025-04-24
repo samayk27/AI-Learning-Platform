@@ -74,7 +74,7 @@ export default function QuizGenerator() {
   };
 
   return (
-    <div style={{ padding: "20px", maxWidth: "900px", margin: "0 auto" }}>
+    <div style={{ padding: "20px" }}>
       <h2>🧠 AI-Generated Quiz</h2>
 
       <div style={{ marginBottom: "10px" }}>
@@ -94,11 +94,11 @@ export default function QuizGenerator() {
         </select>
       </div>
 
-      <textarea
+      <input
+        type="text"
         value={text}
         onChange={e => setText(e.target.value)}
-        placeholder="Paste chapter content here..."
-        rows={8}
+        placeholder="Enter chapter content here..."
         style={{ width: "100%", padding: "10px", fontSize: "16px" }}
       />
 

@@ -52,7 +52,7 @@ export default function PDFSummarizer() {
   };
 
   return (
-    <div style={{ padding: "20px", maxWidth: "600px", margin: "0 auto" }}>
+    <div style={{ padding: "20px" }}>
       <h2>Upload PDF for Summarization</h2>
       
       <input
