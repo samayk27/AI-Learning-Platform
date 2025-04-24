@@ -14,7 +14,7 @@ function App() {
     <Router>
       <div className="app-container">
         <nav className="navbar">
-          <div className="navbar-logo">AI Learning Platform</div>
+          <div className="navbar-logo">AI Education Assistant</div>
           <div className="navbar-links">
             <NavLink to="/" className="nav-link" activeClassName="active-link">
               Home

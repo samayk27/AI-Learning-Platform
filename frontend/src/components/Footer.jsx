@@ -5,7 +5,7 @@ export default function Footer() {
   return (
     <footer className="footer">
       <div className="footer-content">
-        <p>© 2025 AI Learning Platform. All rights reserved.</p>
+        <p>© 2025 AI Education Assistant. All rights reserved.</p>
         <div className="footer-links">
           <a href="/terms" className="footer-link">Terms of Service</a>
           <a href="/privacy" className="footer-link">Privacy Policy</a>

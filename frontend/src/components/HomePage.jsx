@@ -7,7 +7,7 @@ export default function HomePage() {
 
   return (
     <div className="homepage">
-      <h1>Welcome to AI Learning Platform</h1>
+      <h1>Welcome to AI Education Assistant</h1>
       <p>Empower your learning with AI-powered tools. Summarize PDFs, generate quizzes, and more!</p>
       <div className="feature-cards">
         <div className="card" onClick={() => navigate("/pdf-summarizer")}>
