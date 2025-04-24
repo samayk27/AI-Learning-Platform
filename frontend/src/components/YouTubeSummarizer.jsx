@@ -23,8 +23,8 @@ export default function YouTubeSummarizer() {
   };
 
   return (
-    <div style={{ padding: "20px", maxWidth: "600px", margin: "0 auto" }}>
-      <h2>YouTube Summarizer</h2>
+    <div style={{ padding: "20px", maxWidth: "1500px", margin: "auto auto" }}>
+      <h2>YouTube Notes</h2>
       <input
         type="text"
         value={url}

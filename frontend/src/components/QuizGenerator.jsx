@@ -74,7 +74,7 @@ export default function QuizGenerator() {
   };
 
   return (
-    <div style={{ padding: "20px" }}>
+    <div style={{ padding: "20px", maxWidth: "1500px", margin: "auto auto" }}>
       <h2>🧠 AI-Generated Quiz</h2>
 
       <div style={{ marginBottom: "10px" }}>
