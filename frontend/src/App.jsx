@@ -1,37 +1,53 @@
 import React from "react";
-import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
-import ChatBot from "./components/ChatBot";
+import { BrowserRouter as Router, Routes, Route, NavLink } from "react-router-dom";
+import HomePage from "./components/HomePage";
 import PDFSummarizer from "./components/PDFSummarizer";
 import QuizGenerator from "./components/QuizGenerator";
+import Chatbot from "./components/Chatbot";
 import YouTubeSummarizer from "./components/YouTubeSummarizer";
+import Footer from "./components/Footer"; // Import Footer
 import "./App.css";
+import "./Navbar.css";
 
 function App() {
   return (
     <Router>
       <div className="app-container">
         <nav className="navbar">
-          <h1 className="nav-brand">📚 AI Education Assistant</h1>
-          <ul className="nav-links">
-            <li><Link to="/chat">Chat</Link></li>
-            <li><Link to="/pdf">PDF Summarizer</Link></li>
-            <li><Link to="/youtube">YouTube Summarizer</Link></li>
-            <li><Link to="/quiz">Quiz Generator</Link></li>
-          </ul>
+          <div className="navbar-logo">AI Learning Platform</div>
+          <div className="navbar-links">
+            <NavLink to="/" className="nav-link" activeClassName="active-link">
+              Home
+            </NavLink>
+            <NavLink to="/pdf-summarizer" className="nav-link" activeClassName="active-link">
+              PDF Summarizer
+            </NavLink>
+            <NavLink to="/quiz-generator" className="nav-link" activeClassName="active-link">
+              Quiz Generator
+            </NavLink>
+            <NavLink to="/chatbot" className="nav-link" activeClassName="active-link">
+              Chatbot
+            </NavLink>
+            <NavLink to="/youtube-summarizer" className="nav-link" activeClassName="active-link">
+              YouTube Summarizer
+            </NavLink>
+          </div>
         </nav>
-
-        <main className="main-content">
+        <div className="main-content">
           <Routes>
-            <Route path="/" element={<ChatBot />} />
-            <Route path="/chat" element={<ChatBot />} />
-            <Route path="/pdf" element={<PDFSummarizer />} />
-            <Route path="/youtube" element={<YouTubeSummarizer />} />
-            <Route path="/quiz" element={<QuizGenerator />} />
+            <Route path="/" element={<HomePage />} />
+            <Route path="/pdf-summarizer" element={<PDFSummarizer />} />
+            <Route path="/quiz-generator" element={<QuizGenerator />} />
+            <Route path="/chatbot" element={<Chatbot />} />
+            <Route path="/youtube-summarizer" element={<YouTubeSummarizer />} />
           </Routes>
-        </main>
+        </div>
+        <Footer /> {/* Footer stays at the bottom */}
       </div>
     </Router>
   );
 }
 
 export default App;
+
+

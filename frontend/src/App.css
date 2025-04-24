@@ -24,9 +24,9 @@ body {
 }
 
 .app-container {
-  min-height: 100vh;
   display: flex;
   flex-direction: column;
+  min-height: 100vh; /* Ensures the container takes the full height of the viewport */
 }
 
 .navbar {
@@ -35,6 +35,7 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-shrink: 0; /* Prevents the navbar from shrinking */
 }
 
 .nav-brand {
@@ -60,8 +61,12 @@ body {
 }
 
 .main-content {
-  flex: 1;
+  flex: 1; /* Makes the main content take up the remaining space */
   background-color: var(--color-bg-secondary);
+}
+
+.footer {
+  flex-shrink: 0; /* Prevents the footer from shrinking */
 }
 
 button {

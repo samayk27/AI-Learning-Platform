@@ -1,0 +1,62 @@
+.footer {
+  background-color: rgba(26, 27, 30, 0.9); /* Dark background with reduced opacity */
+  color: #e4e5e7; /* Light text color */
+  text-align: center;
+  padding: 20px 10px;
+  position: relative;
+  bottom: 0;
+  width: 100%;
+  box-shadow: 0 -2px 6px rgba(0, 0, 0, 0.1);
+  font-family: 'Arial', sans-serif;
+}
+
+.footer-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.footer-links {
+  margin-top: 10px;
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+}
+
+.footer-link {
+  color: #3b82f6; /* Accent color for links */
+  text-decoration: none;
+  font-size: 0.9rem;
+  font-weight: bold;
+  transition: color 0.3s, text-shadow 0.3s;
+}
+
+.footer-link:hover {
+  color: #2563eb; /* Slightly darker accent color on hover */
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5); /* Adds a subtle shadow */
+}
+
+.footer p {
+  font-size: 0.9rem;
+  margin: 5px 0;
+}
+
+.footer-social {
+  margin-top: 15px;
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+}
+
+.footer-social a {
+  color: #e4e5e7; /* Light text color */
+  font-size: 1.2rem;
+  transition: transform 0.3s, color 0.3s;
+}
+
+.footer-social a:hover {
+  transform: scale(1.2); /* Slight zoom effect on hover */
+  color: #3b82f6; /* Accent color on hover */
+}

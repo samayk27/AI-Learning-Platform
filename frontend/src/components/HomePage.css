@@ -1,0 +1,149 @@
+.homepage {
+  background-image: url('https://www.springboard.com/blog/wp-content/uploads/2022/02/is-ai-hard-to-learn-scaled.jpg'); /* Replace with your image URL */
+  background-size: cover; /* Ensures the image covers the entire viewport */
+  background-position: center; /* Centers the image */
+  background-attachment: fixed; /* Makes the background image stay fixed during scrolling */
+  height: 100vh; /* Full viewport height */
+  color: white;
+  text-align: center;
+  padding: 50px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  box-shadow: inset 0 0 0 1000px rgba(0, 0, 0, 0.5); /* Adds a dark overlay for better text visibility */
+}
+
+.homepage h1 {
+  font-size: 3.5rem;
+  margin-bottom: 20px;
+  text-shadow: 3px 3px 8px rgba(0, 0, 0, 0.8); /* Adds a shadow for better readability */
+  font-family: 'Arial', sans-serif;
+}
+
+.homepage p {
+  font-size: 1.5rem;
+  margin-bottom: 30px;
+  text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.7); /* Adds a shadow for better readability */
+  font-family: 'Arial', sans-serif;
+}
+
+.feature-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+  width: 100%;
+  max-width: 1200px;
+  margin-top: 30px;
+  padding: 0 20px; /* Adds padding for better spacing on smaller screens */
+}
+
+.card {
+  background-color: rgba(0, 0, 0, 0.8); /* Dark background to match the page theme */
+  color: white; /* White text for contrast */
+  padding: 25px;
+  border-radius: 15px; /* Rounded corners for a modern look */
+  box-shadow: 0 6px 10px rgba(0, 0, 0, 0.3); /* Subtle shadow for depth */
+  text-align: center;
+  cursor: pointer;
+  transition: transform 0.3s ease, box-shadow 0.3s ease, background-color 0.3s ease;
+}
+
+.card:hover {
+  transform: translateY(-10px); /* Lifts the card slightly on hover */
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5); /* Adds a stronger shadow on hover */
+  background-color: rgba(0, 0, 0, 0.9); /* Slightly darker background on hover */
+}
+
+.card h3 {
+  font-size: 1.6rem;
+  margin-bottom: 15px;
+  color: #4CAF50; /* Green accent color for titles */
+  font-weight: bold;
+  text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.7); /* Adds a shadow for better readability */
+}
+
+.card p {
+  font-size: 1rem;
+  color: #ddd; /* Softer text color for descriptions */
+  line-height: 1.5; /* Improves readability */
+}
+
+.card:hover h3 {
+  color: #81C784; /* Lighter green on hover for titles */
+}
+
+.card:hover p {
+  color: #fff; /* White text on hover for descriptions */
+}
+
+.homepage button {
+  padding: 15px 40px;
+  margin: 10px;
+  font-size: 1.2rem;
+  font-weight: bold;
+  border: none;
+  border-radius: 30px;
+  cursor: pointer;
+  transition: transform 0.3s, background-color 0.3s, box-shadow 0.3s; /* Adds smooth hover effects */
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2); /* Adds a subtle shadow */
+}
+
+.homepage button:hover {
+  transform: scale(1.1); /* Slight zoom effect on hover */
+  background-color: #333; /* Darkens the button on hover */
+  color: white;
+  box-shadow: 0 6px 10px rgba(0, 0, 0, 0.4); /* Enhances the shadow on hover */
+}
+
+.homepage button:first-of-type {
+  background-color: #4CAF50; /* Green */
+  color: white;
+}
+
+.homepage button:nth-of-type(2) {
+  background-color: #2196F3; /* Blue */
+  color: white;
+}
+
+.homepage button:nth-of-type(3) {
+  background-color: #FF9800; /* Orange */
+  color: white;
+}
+
+.homepage button:nth-of-type(4) {
+  background-color: #9C27B0; /* Purple */
+  color: white;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .homepage h1 {
+    font-size: 2.5rem;
+  }
+
+  .homepage p {
+    font-size: 1.2rem;
+  }
+
+  .homepage button {
+    padding: 10px 30px;
+    font-size: 1rem;
+  }
+
+  .feature-cards {
+    grid-template-columns: 1fr; /* Single column layout for smaller screens */
+  }
+
+  .card {
+    padding: 20px;
+  }
+
+  .card h3 {
+    font-size: 1.4rem;
+  }
+
+  .card p {
+    font-size: 0.9rem;
+  }
+}
