@@ -27,15 +27,50 @@ def summarize_text(text: str) -> str:
     except Exception as e:
         return f"Error generating summary: {str(e)}"
 
-def generate_quiz(text: str, user_class: str, board: str) -> str:
-    prompt = (
-        f"Generate 5 multiple-choice questions (MCQs) from the following chapter content for Class {user_class} "
-        f"students of the {board} board. Each question must have options (a) to (d), clearly marked answer, "
-        f"and a short explanation. Follow this format:\n"
-        f"**1. Question text?**\n(a) Option1\n(b) Option2\n(c) Option3\n(d) Option4\n"
-        f"**Answer: (b)**\n**Explanation: Explanation here**\n\n"
-        f"Chapter:\n{text}"
-    )
+def generate_quiz(text: str, user_class: str, board: str, difficulty: float = 0.5) -> str:
+    # Map difficulty (0.0-1.0) to cognitive levels
+    if difficulty < 0.3:
+        cognitive_level = "basic recall and understanding"
+        complexity = "simple and straightforward"
+    elif difficulty < 0.6:
+        cognitive_level = "application and analysis"
+        complexity = "moderate complexity"
+    else:
+        cognitive_level = "analysis, evaluation, and synthesis"
+        complexity = "challenging and thought-provoking"
+
+    prompt = f"""Generate 10 multiple-choice questions (MCQs) from the given chapter content. 
+Target audience: Class {user_class} students of {board} board.
+
+Difficulty Level: {difficulty * 100}% (Make questions {complexity})
+Cognitive Level: Focus on {cognitive_level}
+
+Requirements:
+1. Questions should match the specified difficulty level strictly
+2. For higher difficulty:
+   - Include questions that require critical thinking
+   - Add questions that combine multiple concepts
+   - Include application-based scenarios
+   - Add questions that require analysis or evaluation
+3. For lower difficulty:
+   - Focus on basic concepts and definitions
+   - Use clear and direct language
+   - Keep options distinct and unambiguous
+
+Format each question as follows:
+**1. Question text?**
+(a) Option1
+(b) Option2
+(c) Option3
+(d) Option4
+**Answer: (letter)**
+**Explanation: Detailed explanation of why this is the correct answer**
+
+Chapter Content:
+{text}
+
+Remember: Maintain consistent {difficulty * 100}% difficulty level across all questions."""
+
     try:
         res = model.generate_content(prompt)
         return res.text if res and hasattr(res, 'text') else "No quiz generated."

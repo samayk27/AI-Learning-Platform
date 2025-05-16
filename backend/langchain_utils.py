@@ -1,15 +1,20 @@
-from langchain.chains.question_answering import load_qa_chain
-from langchain.docstore.document import Document
-from langchain_community.llms import GooglePalm
 from dotenv import load_dotenv
 import os
+import google.generativeai as genai
 
 load_dotenv()
 
-llm = GooglePalm(google_api_key=os.getenv("GOOGLE_API_KEY"))
-chain = load_qa_chain(llm=llm, chain_type="stuff")
+genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
+model = genai.GenerativeModel("gemini-1.5-flash")
 
 def get_document_qa(text: str, question: str):
-    doc = Document(page_content=text)
-    result = chain.run(input_documents=[doc], question=question)
-    return result
+    try:
+        response = model.generate_content(question)
+        if response and hasattr(response, 'text'):
+            answer = response.text.strip()
+            if not answer:
+                return "I could not understand your question. Please try rephrasing it."
+            return answer
+        return "I couldn't generate a response. Please try again."
+    except Exception as e:
+        return f"Error: {str(e)}"
