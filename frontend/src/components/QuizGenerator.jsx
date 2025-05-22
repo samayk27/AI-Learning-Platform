@@ -6,6 +6,7 @@ import QuizRenderer from "./QuizRenderer";
 export default function QuizGenerator() {
   const { user, isLoaded, isSignedIn } = useUser();
   const [text, setText] = useState("");
+  const [chapterName, setChapterName] = useState("");
   const [studentClass, setStudentClass] = useState(() => {
     return localStorage.getItem("quizPreferences_class") || "10";
   });
@@ -24,6 +25,7 @@ export default function QuizGenerator() {
   const [difficultyPreference, setDifficultyPreference] = useState(() => {
     return parseFloat(localStorage.getItem("quizPreferences_difficulty")) || 0.5;
   });
+  const [difficultyIncreased, setDifficultyIncreased] = useState(false);
   const [recommendations, setRecommendations] = useState(() => {
     const saved = localStorage.getItem("currentRecommendations");
     return saved ? JSON.parse(saved) : [];
@@ -39,13 +41,17 @@ export default function QuizGenerator() {
       total_questions: 0
     };
   });
+  
+  const [chapterStats, setChapterStats] = useState(() => {
+    const saved = localStorage.getItem(`chapterStats_${user?.id}`);
+    return saved ? JSON.parse(saved) : {};
+  });
 
   const [pastScores, setPastScores] = useState(() => {
     const saved = localStorage.getItem(`pastScores_${user?.id}`);
     return saved ? JSON.parse(saved) : [];
   });
 
-  // Save preferences whenever they change
   useEffect(() => {
     localStorage.setItem("quizPreferences_class", studentClass);
   }, [studentClass]);
@@ -58,7 +64,6 @@ export default function QuizGenerator() {
     localStorage.setItem("quizPreferences_difficulty", difficultyPreference.toString());
   }, [difficultyPreference]);
 
-  // Save quiz state whenever it changes
   useEffect(() => {
     if (parsedQuiz.length > 0) {
       localStorage.setItem("currentQuiz", JSON.stringify(parsedQuiz));
@@ -83,6 +88,12 @@ export default function QuizGenerator() {
       localStorage.setItem(`userStats_${user.id}`, JSON.stringify(userStats));
     }
   }, [userStats, user?.id]);
+  
+  useEffect(() => {
+    if (user?.id) {
+      localStorage.setItem(`chapterStats_${user.id}`, JSON.stringify(chapterStats));
+    }
+  }, [chapterStats, user?.id]);
 
   useEffect(() => {
     if (user?.id) {
@@ -99,6 +110,7 @@ export default function QuizGenerator() {
         const response = await axios.get(`/scores/${user.id}`);
         const serverScores = response.data.scores || [];
         const serverStats = response.data.stats || userStats;
+        const serverChapterStats = response.data.chapter_stats || {};
         
         // Merge server data with local data
         const mergedScores = [...new Set([...serverScores, ...pastScores])];
@@ -108,6 +120,12 @@ export default function QuizGenerator() {
         setUserStats(prev => ({
           ...prev,
           ...serverStats
+        }));
+        
+        // Update chapter stats with server data
+        setChapterStats(prev => ({
+          ...prev,
+          ...serverChapterStats
         }));
       } catch (error) {
         console.error("Error loading user scores:", error);
@@ -122,8 +140,8 @@ export default function QuizGenerator() {
 
   // Clear quiz when generating new one
   const handleGenerate = async () => {
-    if (!text.trim()) {
-      setError("Please enter some text to generate a quiz");
+    if (!chapterName.trim()) {
+      setError("Please enter a chapter name");
       return;
     }
 
@@ -134,11 +152,13 @@ export default function QuizGenerator() {
     localStorage.removeItem("currentQuiz");
     localStorage.removeItem("currentScore");
     localStorage.removeItem("currentRecommendations");
+    localStorage.setItem("currentChapter", chapterName.trim());
     
     try {
       setScore(null);
       const res = await axios.post("/quiz/", {
-        chapter_text: text,
+        chapter_name: chapterName.trim(),
+        chapter_text: text.trim() || null,
         past_scores: pastScores,
         user_class: studentClass,
         board: board,
@@ -221,6 +241,7 @@ export default function QuizGenerator() {
       const results = parsedQuiz.map((q, index) => {
         const isCorrect = q.selected.includes(q.answer);
         return {
+          chapter: chapterName.trim(),
           topic: q.question.substring(0, 50) + "...", // Use truncated question as topic
           correct: isCorrect,
           user_id: user.id,
@@ -247,6 +268,24 @@ export default function QuizGenerator() {
           ...response.data.stats,
           completed_quizzes: prev.completed_quizzes + 1
         }));
+      }
+      
+      // Update chapter stats with the response from the server
+      if (response.data.chapter_stats) {
+        setChapterStats(prev => ({
+          ...prev,
+          ...response.data.chapter_stats
+        }));
+      }
+      
+      // Auto-increase difficulty if score exceeds threshold (75%)
+      const scorePercentage = (finalScore / parsedQuiz.length) * 100;
+      if (scorePercentage >= 75 && difficultyPreference < 0.9) {
+        const newDifficulty = Math.min(difficultyPreference + 0.1, 0.9);
+        setDifficultyPreference(newDifficulty);
+        setDifficultyIncreased(true);
+      } else {
+        setDifficultyIncreased(false);
       }
     } catch (error) {
       console.error("Error saving quiz results:", error);
@@ -278,12 +317,23 @@ export default function QuizGenerator() {
       {error && (
         <div style={{ 
           padding: "10px", 
-          backgroundColor: "#ffebee", 
           color: "#c62828", 
           borderRadius: "4px",
           marginBottom: "20px" 
         }}>
           {error}
+        </div>
+      )}
+      
+      {difficultyIncreased && (
+        <div style={{ 
+          padding: "10px", 
+          backgroundColor: "#e8f5e9", 
+          color: "#2e7d32", 
+          borderRadius: "4px",
+          marginBottom: "20px" 
+        }}>
+          Great job! Your difficulty level has been automatically increased to {Math.round(difficultyPreference * 100)}% based on your performance.
         </div>
       )}
 
@@ -329,20 +379,44 @@ export default function QuizGenerator() {
             marginBottom: "10px",
           }}>
             <h4>Your Stats</h4>
-            <div style={{ display: "flex", gap: "20px" }}>
+            <div style={{ display: "flex", gap: "20px", marginBottom: "10px" }}>
               <div>Quizzes Completed: {userStats.completed_quizzes}</div>
               <div>Average Score: {userStats.total_questions ? 
                 Math.round((userStats.total_correct / userStats.total_questions) * 100) : 0}%</div>
               <div>Proficiency Level: {Math.round(userStats.proficiency_level * 100)}%</div>
             </div>
+            
+            {chapterName && chapterStats[chapterName] && (
+              <div style={{ marginTop: "10px", padding: "10px", border: "1px solid #e0e0e0", borderRadius: "5px" }}>
+                <h5 style={{ margin: "0 0 8px 0" }}>Chapter: {chapterName}</h5>
+                <div style={{ display: "flex", gap: "20px" }}>
+                  <div>Questions: {chapterStats[chapterName].total_questions}</div>
+                  <div>Correct: {chapterStats[chapterName].total_correct}</div>
+                  <div>Proficiency: {Math.round(chapterStats[chapterName].proficiency * 100)}%</div>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
 
+      <input
+        type="text"
+        value={chapterName}
+        onChange={e => setChapterName(e.target.value)}
+        placeholder="Enter chapter name..."
+        style={{ 
+          width: "100%", 
+          padding: "10px", 
+          fontSize: "16px",
+          marginBottom: "10px"
+        }}
+      />
+      
       <textarea
         value={text}
         onChange={e => setText(e.target.value)}
-        placeholder="Enter chapter content here..."
+        placeholder="Enter chapter content here (optional)..."
         style={{ 
           width: "100%", 
           padding: "10px", 
@@ -372,7 +446,6 @@ export default function QuizGenerator() {
         <div style={{ 
           marginTop: "20px",
           padding: "15px",
-          background: "#f0f7ff",
           borderRadius: "5px" 
         }}>
           <h3>Recommended Focus Areas</h3>

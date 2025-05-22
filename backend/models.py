@@ -5,6 +5,7 @@ class Score(BaseModel):
     topic: str
     correct: bool
     user_id: str
+    chapter: Optional[str] = None
     timestamp: Optional[str] = None
     difficulty: Optional[float] = None
 
@@ -18,7 +19,8 @@ class UserProfile(BaseModel):
     total_questions: int = 0
 
 class QuizRequest(BaseModel):
-    chapter_text: str
+    chapter_text: Optional[str] = None
+    chapter_name: str
     past_scores: List[Score]
     user_class: str
     board: str

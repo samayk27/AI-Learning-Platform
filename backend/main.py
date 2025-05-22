@@ -45,14 +45,12 @@ async def summarize_pdf(file: UploadFile):
 
         text = ""
         try:
-            # First try to extract text using PyPDF2
             pdf_reader = PdfReader(io.BytesIO(content))
             for page in pdf_reader.pages:
                 extracted = page.extract_text()
                 if extracted:
                     text += extracted + "\n"
 
-            # If no text was extracted, try OCR
             if not text.strip():
                 images = convert_from_bytes(content)
                 for image in images:
@@ -124,20 +122,32 @@ async def youtube_notes(req: YouTubeRequest):
 @app.post("/quiz/")
 def generate_quiz_endpoint(req: QuizRequest):
     try:
-        if not req.chapter_text:
-            return {"error": "Empty chapter text provided"}
+        # Filter past scores by chapter if chapter name is provided
+        filtered_scores = req.past_scores
+        if req.chapter_name:
+            filtered_scores = [score for score in req.past_scores if score.chapter == req.chapter_name]
         
-        analysis = difficulty_adjuster.analyze_performance(req.past_scores)
+        analysis = difficulty_adjuster.analyze_performance(filtered_scores)
         
         # Use the requested difficulty preference or default to 0.5
         difficulty = req.difficulty_preference if req.difficulty_preference is not None else 0.5
         
-        questions = gemini_generate_quiz(
-            req.chapter_text, 
-            req.user_class, 
-            req.board,
-            difficulty=difficulty
-        )
+        # Generate quiz based on chapter text or generate a standard quiz for the chapter
+        if req.chapter_text:
+            questions = gemini_generate_quiz(
+                req.chapter_text, 
+                req.user_class, 
+                req.board,
+                difficulty=difficulty
+            )
+        else:
+            # Generate a quiz based on the chapter name and user's class/board
+            questions = gemini_generate_quiz(
+                f"Generate a quiz for chapter: {req.chapter_name} for class {req.user_class} {req.board} board", 
+                req.user_class, 
+                req.board,
+                difficulty=difficulty
+            )
         
         if not questions or "Error:" in questions:
             return {"error": questions if "Error:" in questions else "Failed to generate quiz"}
@@ -199,10 +209,33 @@ async def save_user_score(user_id: str, request: ScoresRequest):
                     detail=f"Score user_id mismatch. Expected {user_id}"
                 )
 
-        # Calculate stats
+        # Calculate overall stats
         total_questions = len(request.scores)
         total_correct = sum(1 for s in request.scores if s.correct)
         proficiency_level = total_correct / total_questions if total_questions > 0 else 0.5
+        
+        # Calculate chapter-specific stats if all scores have the same chapter
+        chapter_stats = {}
+        if all(score.chapter for score in request.scores):
+            # Group scores by chapter
+            chapters = {}
+            for score in request.scores:
+                if score.chapter not in chapters:
+                    chapters[score.chapter] = {
+                        "total": 0,
+                        "correct": 0
+                    }
+                chapters[score.chapter]["total"] += 1
+                if score.correct:
+                    chapters[score.chapter]["correct"] += 1
+            
+            # Calculate proficiency for each chapter
+            for chapter, data in chapters.items():
+                chapter_stats[chapter] = {
+                    "proficiency": data["correct"] / data["total"] if data["total"] > 0 else 0.5,
+                    "total_correct": data["correct"],
+                    "total_questions": data["total"]
+                }
 
         return {
             "status": "success", 
@@ -211,7 +244,8 @@ async def save_user_score(user_id: str, request: ScoresRequest):
                 "proficiency_level": proficiency_level,
                 "total_correct": total_correct,
                 "total_questions": total_questions
-            }
+            },
+            "chapter_stats": chapter_stats
         }
     except ValidationError as e:
         raise HTTPException(status_code=422, detail=str(e))
@@ -230,7 +264,8 @@ async def get_user_scores(user_id: str):
                 "completed_quizzes": 0,
                 "total_correct": 0,
                 "total_questions": 0
-            }
+            },
+            "chapter_stats": {}
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
