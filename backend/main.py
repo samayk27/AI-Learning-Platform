@@ -1,244 +1,210 @@
 from fastapi import FastAPI, UploadFile, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, ValidationError
-from gemini_utils import summarize_text, generate_quiz as gemini_generate_quiz
-from nlp_analysis import difficulty_adjuster
-from langchain_utils import get_document_qa
-from models import SummaryRequest, QuizRequest, YouTubeRequest, Score
+from typing import List
 from PyPDF2 import PdfReader
 from pdf2image import convert_from_bytes
 import pytesseract
 import io
-import uvicorn
-from typing import List
-from youtube_transcript_api import YouTubeTranscriptApi
 import re
+from youtube_transcript_api import YouTubeTranscriptApi
+from gemini_utils import summarize_text, generate_quiz as gemini_generate_quiz
+from nlp_analysis import difficulty_adjuster
+from langchain_utils import get_document_qa
+from models import SummaryRequest, QuizRequest, YouTubeRequest, Score
 
 app = FastAPI()
 
-# Add CORS middleware
+# --- CORS CONFIG ---
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://localhost:5173",    # Vite default
-        "http://localhost:3000",    # Common React port
-        "http://127.0.0.1:5173",   # Alternative Vite URL
-        "http://127.0.0.1:3000",   # Alternative React URL
-        "http://localhost:8000",    # Another common development port
+        "http://localhost:5173",
+        "http://localhost:3000",
+        "http://127.0.0.1:5173",
+        "http://127.0.0.1:3000",
+        "http://localhost:8000",
     ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+
 class ScoresRequest(BaseModel):
     scores: List[Score]
 
-# --- PDF/Text Summarizer ---
+# --- PDF Summarization ---
+
+
 @app.post("/summarize/")
 async def summarize_pdf(file: UploadFile):
     try:
         content = await file.read()
-        
+
         if not file.filename.lower().endswith('.pdf'):
             return {"error": "File is not a valid PDF."}
 
         text = ""
-        try:
-            pdf_reader = PdfReader(io.BytesIO(content))
-            for page in pdf_reader.pages:
-                extracted = page.extract_text()
-                if extracted:
-                    text += extracted + "\n"
+        pdf_reader = PdfReader(io.BytesIO(content))
+        for page in pdf_reader.pages:
+            extracted = page.extract_text()
+            if extracted:
+                text += extracted + "\n"
 
-            if not text.strip():
-                images = convert_from_bytes(content)
-                for image in images:
-                    text += pytesseract.image_to_string(image) + "\n"
+        # Fallback to OCR if no text
+        if not text.strip():
+            images = convert_from_bytes(content)
+            for image in images:
+                text += pytesseract.image_to_string(image) + "\n"
 
-            if not text.strip():
-                return {"error": "No readable text found in the document"}
+        if not text.strip():
+            return {"error": "No readable text found in the document"}
 
-            # Generate summary using the extracted text
-            summary = summarize_text(text.strip())
-            return {"summary": summary}
-
-        except Exception as e:
-            return {"error": f"Error processing PDF: {str(e)}"}
+        summary = summarize_text(text.strip())
+        return {"summary": summary}
 
     except Exception as e:
-        return {"error": f"Unexpected error: {str(e)}"}
+        return {"error": f"Error processing PDF: {str(e)}"}
+
+# --- YouTube Transcript Utilities ---
+
 
 def extract_video_id(url: str) -> str:
-    """Extract YouTube video ID from various URL formats."""
     patterns = [
-        r'(?:v=|/v/|youtu\.be/|/embed/)([^&?/]+)',  # Standard, shortened and embed URLs
-        r'(?:youtube\.com/|youtu\.be/)(?:watch\?v=)?([^&?/]+)',  # Other variations
+        r'(?:v=|/v/|youtu\.be/|/embed/)([^&?/]+)',
+        r'(?:youtube\.com/|youtu\.be/)(?:watch\?v=)?([^&?/]+)',
     ]
-    
     for pattern in patterns:
-        if match := re.search(pattern, url):
+        match = re.search(pattern, url)
+        if match:
             return match.group(1)
     raise ValueError("Invalid YouTube URL")
 
+
 def get_youtube_transcript(url: str) -> str:
-    """Fetch and combine transcript from YouTube video."""
     try:
         video_id = extract_video_id(url)
         transcript_list = YouTubeTranscriptApi.list_transcripts(video_id)
-        
-        # Try to get English transcript
+
         try:
             transcript = transcript_list.find_transcript(['en'])
         except:
-            # If English not available, get auto-translated version
-            transcript = transcript_list.find_manually_created_transcript()
-            transcript = transcript.translate('en')
-        
+            transcript = transcript_list.find_manually_created_transcript().translate('en')
+
         transcript_parts = transcript.fetch()
-        return " ".join([part['text'] for part in transcript_parts])
-        
+        return " ".join([part.text for part in transcript_parts])
     except Exception as e:
         raise ValueError(f"Failed to get transcript: {str(e)}")
+# --- YouTube Summarization ---
 
-# --- YouTube Transcript Notes ---
+
 @app.post("/youtube-summary/")
 async def youtube_notes(req: YouTubeRequest):
     try:
         if not req.transcript:
             return {"error": "Empty URL provided"}
-            
-        try:
-            transcript_text = get_youtube_transcript(req.transcript)
-        except ValueError as e:
-            return {"error": str(e)}
-            
+
+        transcript_text = get_youtube_transcript(req.transcript)
+
+        if not transcript_text.strip():
+            return {"notes": "Transcript is empty or not available."}
+
         summary = summarize_text(transcript_text)
         return {"notes": summary}
+
     except Exception as e:
         return {"error": f"Error processing transcript: {str(e)}"}
 
-# --- Quiz Generation Endpoint ---
+# --- Quiz Generation ---
+
+
 @app.post("/quiz/")
 def generate_quiz_endpoint(req: QuizRequest):
     try:
-        # Filter past scores by chapter if chapter name is provided
         filtered_scores = req.past_scores
         if req.chapter_name:
-            filtered_scores = [score for score in req.past_scores if score.chapter == req.chapter_name]
-        
+            filtered_scores = [
+                s for s in req.past_scores if s.chapter == req.chapter_name]
+
         analysis = difficulty_adjuster.analyze_performance(filtered_scores)
-        
-        # Use the requested difficulty preference or default to 0.5
         difficulty = req.difficulty_preference if req.difficulty_preference is not None else 0.5
-        
-        # Generate quiz based on chapter text or generate a standard quiz for the chapter
+
         if req.chapter_text:
             questions = gemini_generate_quiz(
-                req.chapter_text, 
-                req.user_class, 
+                req.chapter_text,
+                req.user_class,
                 req.board,
                 difficulty=difficulty
             )
         else:
-            # Generate a quiz based on the chapter name and user's class/board
             questions = gemini_generate_quiz(
-                f"Generate a quiz for chapter: {req.chapter_name} for class {req.user_class} {req.board} board", 
-                req.user_class, 
+                f"Generate a quiz for chapter: {req.chapter_name} for class {req.user_class} {req.board} board",
+                req.user_class,
                 req.board,
                 difficulty=difficulty
             )
-        
+
         if not questions or "Error:" in questions:
             return {"error": questions if "Error:" in questions else "Failed to generate quiz"}
-            
+
         return {
             "quiz": questions,
             "difficulty_level": difficulty,
             "recommended_topics": analysis.get("recommendations", [])
         }
+
     except Exception as e:
         return {"error": f"Error generating quiz: {str(e)}"}
 
+# --- QA from Document ---
 
-# --- QA from Documents ---
+
 @app.post("/document-qa/")
-async def qa_endpoint(question: str = Form(...)):
+async def qa_endpoint(question: str = Form(...), context: str = Form("")):
     try:
         if not question:
             return {"error": "Please provide a question"}
-        return {"answer": get_document_qa("", question)}
+        return {"answer": get_document_qa(context, question)}
     except Exception as e:
         return {"error": f"Error processing QA request: {str(e)}"}
 
-# --- Save User Data ---
-@app.post("/save-user/")
-def save_user(data: dict):
-    try:
-        from firebase_utils import save_user_data
-        save_user_data(data)
-        return {"status": "saved"}
-    except ImportError:
-        return {"status": "mock saved", "message": "Firebase utils not available"}
-    except Exception as e:
-        return {"error": f"Error saving user data: {str(e)}"}
+# --- Save User Scores ---
 
-# --- Get User Profile ---
-@app.get("/get-user/{uid}")
-def get_user(uid: str):
-    try:
-        from firebase_utils import get_user_profile
-        return get_user_profile(uid)
-    except ImportError:
-        return {"uid": uid, "name": "Demo User", "message": "Firebase utils not available"}
-    except Exception as e:
-        return {"error": f"Error retrieving user profile: {str(e)}"}
 
-# --- User Scores ---
 @app.post("/scores/{user_id}")
 async def save_user_score(user_id: str, request: ScoresRequest):
     try:
         if not request.scores:
             raise HTTPException(status_code=400, detail="No scores provided")
 
-        # Validate that all scores have the correct user_id
         for score in request.scores:
             if score.user_id != user_id:
                 raise HTTPException(
-                    status_code=400, 
-                    detail=f"Score user_id mismatch. Expected {user_id}"
-                )
+                    status_code=400, detail="user_id mismatch in score data")
 
-        # Calculate overall stats
         total_questions = len(request.scores)
         total_correct = sum(1 for s in request.scores if s.correct)
-        proficiency_level = total_correct / total_questions if total_questions > 0 else 0.5
-        
-        # Calculate chapter-specific stats if all scores have the same chapter
+        proficiency_level = total_correct / \
+            total_questions if total_questions > 0 else 0.5
+
         chapter_stats = {}
-        if all(score.chapter for score in request.scores):
-            # Group scores by chapter
-            chapters = {}
-            for score in request.scores:
-                if score.chapter not in chapters:
-                    chapters[score.chapter] = {
-                        "total": 0,
-                        "correct": 0
-                    }
-                chapters[score.chapter]["total"] += 1
-                if score.correct:
-                    chapters[score.chapter]["correct"] += 1
-            
-            # Calculate proficiency for each chapter
-            for chapter, data in chapters.items():
-                chapter_stats[chapter] = {
-                    "proficiency": data["correct"] / data["total"] if data["total"] > 0 else 0.5,
-                    "total_correct": data["correct"],
-                    "total_questions": data["total"]
-                }
+        for score in request.scores:
+            chapter = score.chapter
+            if not chapter:
+                continue
+            if chapter not in chapter_stats:
+                chapter_stats[chapter] = {"total": 0, "correct": 0}
+            chapter_stats[chapter]["total"] += 1
+            if score.correct:
+                chapter_stats[chapter]["correct"] += 1
+
+        for chapter in chapter_stats:
+            data = chapter_stats[chapter]
+            data["proficiency"] = data["correct"] / data["total"]
 
         return {
-            "status": "success", 
+            "status": "success",
             "scores": request.scores,
             "stats": {
                 "proficiency_level": proficiency_level,
@@ -247,28 +213,27 @@ async def save_user_score(user_id: str, request: ScoresRequest):
             },
             "chapter_stats": chapter_stats
         }
+
     except ValidationError as e:
         raise HTTPException(status_code=422, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+# --- Get Scores Stub (no DB) ---
+
+
 @app.get("/scores/{user_id}")
 async def get_user_scores(user_id: str):
-    try:
-        # Here you would typically fetch from a database
-        # For now, return empty scores list and default stats
-        return {
-            "scores": [],
-            "stats": {
-                "proficiency_level": 0.5,
-                "completed_quizzes": 0,
-                "total_correct": 0,
-                "total_questions": 0
-            },
-            "chapter_stats": {}
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    return {
+        "scores": [],
+        "stats": {
+            "proficiency_level": 0.5,
+            "completed_quizzes": 0,
+            "total_correct": 0,
+            "total_questions": 0
+        },
+        "chapter_stats": {}
+    }
 
 if __name__ == "__main__":
-    uvicorn.run("main:app", reload=True)
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
