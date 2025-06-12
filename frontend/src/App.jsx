@@ -13,7 +13,7 @@ import { ClerkProvider, SignIn, SignUp, UserButton, useUser } from "@clerk/clerk
 const clerkPubKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 
 function NavbarContent() {
-  const { isSignedIn, user } = useUser();
+  const { isSignedIn } = useUser();
 
   return (
     <nav className="navbar">
