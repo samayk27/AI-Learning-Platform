@@ -6,6 +6,7 @@ from PyPDF2 import PdfReader
 from pdf2image import convert_from_bytes
 import pytesseract
 import io
+import uvicorn
 import re
 from youtube_transcript_api import YouTubeTranscriptApi
 from gemini_utils import summarize_text, generate_quiz as gemini_generate_quiz
